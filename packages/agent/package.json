@@ -1,0 +1,41 @@
+{
+  "name": "@metabindai/agent",
+  "version": "0.1.0",
+  "description": "Framework-agnostic client for the Metabind agent proxy. Streams typed events from `agent.metabind.ai/:orgId/:projectId/chat`.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "index.ts"
+  ],
+  "scripts": {
+    "dev": "tsc --watch",
+    "build": "rm -rf dist && tsc -b",
+    "test": "vitest"
+  },
+  "keywords": [
+    "metabind",
+    "agent",
+    "sse",
+    "mcp"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "eventsource-parser": "^3.0.8"
+  },
+  "devDependencies": {
+    "typescript": "~5.6.2",
+    "vitest": "^3.1.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/metabindai/metabind-web",
+    "directory": "packages/agent"
+  }
+}

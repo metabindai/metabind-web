@@ -1,0 +1,4 @@
+# Metabind web SDK packages + examples.
+packages:
+  - 'packages/*'
+  - 'examples/*'

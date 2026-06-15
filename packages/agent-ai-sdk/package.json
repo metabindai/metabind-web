@@ -1,0 +1,67 @@
+{
+  "name": "@metabindai/agent-ai-sdk",
+  "version": "0.1.0",
+  "description": "Vercel AI SDK adapter for the Metabind agent proxy. Drop-in transport for `useChat`, with an assistant-ui flavour at `@metabindai/agent-ai-sdk/assistant-ui`.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./assistant-ui": {
+      "types": "./dist/assistant-ui.d.ts",
+      "import": "./dist/assistant-ui.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "index.ts",
+    "assistant-ui.ts"
+  ],
+  "scripts": {
+    "dev": "tsc --watch",
+    "build": "rm -rf dist && tsc -b",
+    "test": "vitest"
+  },
+  "keywords": [
+    "metabind",
+    "ai-sdk",
+    "assistant-ui",
+    "mcp"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@metabindai/agent": "workspace:^"
+  },
+  "peerDependencies": {
+    "ai": "^6.0.0",
+    "@ai-sdk/react": "^2.0.0",
+    "@assistant-ui/react-ai-sdk": "^1.3.0"
+  },
+  "peerDependenciesMeta": {
+    "@ai-sdk/react": {
+      "optional": true
+    },
+    "@assistant-ui/react-ai-sdk": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@assistant-ui/react-ai-sdk": "^1.3.21",
+    "ai": "^6.0.175",
+    "typescript": "~5.6.2",
+    "vitest": "^3.1.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/metabindai/metabind-web",
+    "directory": "packages/agent-ai-sdk"
+  }
+}
