@@ -35,7 +35,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@metabindai/agent": "workspace:^"
+    "@metabindai/agent-core": "workspace:^"
   },
   "peerDependencies": {
     "ai": "^6.0.0",

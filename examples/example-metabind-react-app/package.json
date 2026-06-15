@@ -15,7 +15,7 @@
     "@assistant-ui/react-markdown": "^0.12.11",
     "@base-ui/react": "^1.4.1",
     "@mcp-ui/client": "^7.1.0",
-    "@metabindai/agent": "workspace:^",
+    "@metabindai/agent-core": "workspace:^",
     "@metabindai/agent-ai-sdk": "workspace:^",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@streamdown/cjk": "^1.0.3",

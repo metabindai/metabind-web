@@ -8,7 +8,7 @@ import {
     type AgentChatMessage,
     type AgentClient,
     type AgentClientConfig,
-} from "@metabindai/agent";
+} from "@metabindai/agent-core";
 import {
     agentSseToUIMessageChunks,
     type ToolCalledInfo,

@@ -1,5 +1,5 @@
 {
-  "name": "@metabindai/agent",
+  "name": "@metabindai/agent-core",
   "version": "0.1.0",
   "description": "Framework-agnostic client for the Metabind agent proxy. Streams typed events from `agent.metabind.ai/:orgId/:projectId/chat`.",
   "type": "module",
@@ -36,6 +36,6 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/metabindai/metabind-web",
-    "directory": "packages/agent"
+    "directory": "packages/agent-core"
   }
 }

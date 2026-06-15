@@ -2,7 +2,7 @@
 
 A working chat app on top of a Metabind project's MCP endpoint, ready to fork as the starting point for your own Metabind-powered React UI.
 
-- Streams from the Metabind agent proxy via [`@metabindai/agent`](https://www.npmjs.com/package/@metabindai/agent) + [`@metabindai/agent-ai-sdk`](https://www.npmjs.com/package/@metabindai/agent-ai-sdk)
+- Streams from the Metabind agent proxy via [`@metabindai/agent-core`](https://www.npmjs.com/package/@metabindai/agent-core) + [`@metabindai/agent-ai-sdk`](https://www.npmjs.com/package/@metabindai/agent-ai-sdk)
 - Renders the chat through assistant-ui primitives (composer, scroll-to-bottom, action bar, branch picker, edit composer)
 - Renders **MCP UI surfaces** inline: when a tool advertises a `ui/resourceUri` it's loaded into a sandboxed iframe via `@mcp-ui/client`'s `AppRenderer`, with bidirectional `postMessage` so the surface can call other tools or draft text into the composer
 - Markdown messages with `remark-gfm`, streaming dot indicator, syntax-highlighted code, reasoning blocks, collapsible tool-call cards
@@ -60,7 +60,7 @@ src/
 ├── main.tsx              StrictMode mount
 ├── app.tsx               MetabindAgentTransport → useChatRuntime → AssistantRuntimeProvider
 ├── config.ts             reads env vars (ORG_ID, PROJECT_ID, API_KEY, base URLs)
-├── agent.ts              singleton @metabindai/agent client (chat)
+├── agent.ts              singleton @metabindai/agent-core client (chat)
 ├── mcp.ts                singleton @ai-sdk/mcp client (tool metadata + UI tool_call forwarding)
 ├── mcp-ui-context.tsx    on mount, listTools() and extracts `_meta["ui/resourceUri"]` → Map
 ├── components/

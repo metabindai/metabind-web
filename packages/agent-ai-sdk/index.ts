@@ -3,7 +3,7 @@
 // The main entry targets vanilla `@ai-sdk/react` (`useChat`); for an
 // assistant-ui runtime, import from `@metabindai/agent-ai-sdk/assistant-ui`.
 //
-// Re-exports types from `@metabindai/agent` for convenience so users only
+// Re-exports types from `@metabindai/agent-core` for convenience so users only
 // need one import for the typical happy path.
 
 export { MetabindAgentTransport } from "./src/transport";
@@ -30,4 +30,4 @@ export {
     type AgentClient,
     type AgentClientConfig,
     type AgentEvent,
-} from "@metabindai/agent";
+} from "@metabindai/agent-core";

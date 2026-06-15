@@ -1,5 +1,5 @@
 import type { UIMessageChunk } from "ai";
-import { parseAgentSse, type AgentEvent, type AgentUsage } from "@metabindai/agent";
+import { parseAgentSse, type AgentEvent, type AgentUsage } from "@metabindai/agent-core";
 
 export type ToolCalledInfo = {
     toolCallId: string;

@@ -5,15 +5,15 @@ under the public `@metabindai` scope.
 
 | Package | npm | Path |
 | --- | --- | --- |
-| Agent client | [`@metabindai/agent`](https://www.npmjs.com/package/@metabindai/agent) | `packages/agent` |
+| Agent client | [`@metabindai/agent-core`](https://www.npmjs.com/package/@metabindai/agent-core) | `packages/agent-core` |
 | AI SDK adapter | [`@metabindai/agent-ai-sdk`](https://www.npmjs.com/package/@metabindai/agent-ai-sdk) | `packages/agent-ai-sdk` |
 | Example React app | — | `examples/example-metabind-react-app` |
 
-- `@metabindai/agent` is a framework-agnostic client that streams typed events
+- `@metabindai/agent-core` is a framework-agnostic client that streams typed events
   from the Metabind agent proxy (`agent.metabind.ai/:orgId/:projectId/chat`).
 - `@metabindai/agent-ai-sdk` is a Vercel AI SDK transport for `useChat`, with an
   assistant-ui flavour exported from `@metabindai/agent-ai-sdk/assistant-ui`. It
-  depends on `@metabindai/agent`.
+  depends on `@metabindai/agent-core`.
 
 Both are published with `publishConfig.access = public`.
 
@@ -48,7 +48,7 @@ checkout via pnpm overrides instead of publishing on every change:
 // consumer root package.json
 "pnpm": {
   "overrides": {
-    "@metabindai/agent":        "link:../metabind-packages/metabind-web/packages/agent",
+    "@metabindai/agent-core":        "link:../metabind-packages/metabind-web/packages/agent-core",
     "@metabindai/agent-ai-sdk": "link:../metabind-packages/metabind-web/packages/agent-ai-sdk"
   }
 }
@@ -58,7 +58,7 @@ checkout via pnpm overrides instead of publishing on every change:
 
 ```sh
 npm login                       # @metabindai org
-pnpm --filter @metabindai/agent        build && npm publish -w packages/agent
+pnpm --filter @metabindai/agent-core        build && npm publish -w packages/agent-core
 pnpm --filter @metabindai/agent-ai-sdk build && npm publish -w packages/agent-ai-sdk
 ```
 

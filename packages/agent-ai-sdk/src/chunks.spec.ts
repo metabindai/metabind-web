@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { AgentEvent } from "@metabindai/agent";
+import type { AgentEvent } from "@metabindai/agent-core";
 import type { UIMessageChunk } from "ai";
 import {
     agentEventsToUIMessageChunks,
