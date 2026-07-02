@@ -1,0 +1,17 @@
+/* Build input for the prebuilt, self-contained chat stylesheet.
+ *
+ * Compiled by the Tailwind v4 CLI to `dist/agent-ui.css` (see the package's
+ * `build:css` script) and shipped as `@metabindai/agent-ui/agent-ui.css`. A
+ * consumer imports that ONE file on the route that serves the chat — no Tailwind
+ * in their build, any version, any CSS system. When embedded via a host shell it
+ * lives inside the shell's iframe, so it never touches the host page.
+ *
+ * This pulls in Tailwind + the plugins the chat uses, the theme tokens, and
+ * `@source`-scans the chat components so their utility classes are generated. */
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "tw-shimmer";
+@import "../styles.css";
+
+@source "../src";

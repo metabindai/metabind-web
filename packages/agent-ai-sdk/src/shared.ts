@@ -34,6 +34,15 @@ export type MetabindAgentTransportOptions = (
     /** Or pass config and let the transport create its own client. */
     | AgentClientConfig
 ) & {
+    /**
+     * Hidden steering text prepended as a non-displayed leading `user`
+     * message on every outbound request. The proxy holds the real system
+     * prompt server-side; this is the client-side escape hatch for
+     * per-session context (e.g. a demo scenario) that should reach the
+     * model but never appear in the UI thread. Pass a getter to resolve
+     * it lazily (e.g. from sessionStorage) on each turn.
+     */
+    leadingContext?: string | (() => string | undefined);
     /** Fires once per outbound user turn — used for analytics. */
     onSendMessage?: (info: SendMessageInfo) => void;
     /** Fires when a tool_result lands on the SSE stream. The runtime
@@ -95,6 +104,14 @@ export function buildTransportInit(opts: MetabindAgentTransportOptions): {
     const client = resolveClient(opts);
     const { chatUrl, apiKey } = client.config;
     const onSendMessage = opts.onSendMessage;
+    const leadingContext = opts.leadingContext;
+    const resolveLeadingContext = (): string | undefined => {
+        const v =
+            typeof leadingContext === "function"
+                ? leadingContext()
+                : leadingContext;
+        return v && v.trim().length > 0 ? v : undefined;
+    };
     let currentConversationId = "";
     return {
         init: {
@@ -114,9 +131,14 @@ export function buildTransportInit(opts: MetabindAgentTransportOptions): {
                     messageCount: messages.length,
                     userMessageIndex,
                 });
+                const agentMessages = toAgentMessages(messages);
+                const ctx = resolveLeadingContext();
+                if (ctx) {
+                    agentMessages.unshift({ role: "user", content: ctx });
+                }
                 return {
                     body: {
-                        messages: toAgentMessages(messages),
+                        messages: agentMessages,
                         conversationId: id,
                         stream: true,
                     },

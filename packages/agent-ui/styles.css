@@ -1,36 +1,27 @@
-@import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
-@import "tw-shimmer";
-
-/* The chat UI ships as source (TSX), so Tailwind must scan the package to
- * generate its utility classes — Tailwind skips node_modules by default. This
- * app is Tailwind v4, so we compile the chat's classes through our own build
- * (and can theme it with the tokens below). Apps NOT on Tailwind v4 would
- * instead import the package's prebuilt "@metabindai/agent-ui/agent-ui.css". */
-@source "../../../packages/agent-ui/src";
-
-@custom-variant dark (&:is(.dark *));
+/* @metabindai/agent-ui — theme tokens the chat depends on.
+ *
+ * The chat's components are styled with shadcn-style utilities (`border-border`,
+ * `bg-background`, `text-muted-foreground`, `bg-muted`, `outline-ring`, …) plus
+ * a base rule that makes *every* border use the subtle `--border` token instead
+ * of Tailwind v4's `currentColor` default. Without this, borders render dark and
+ * look far heavier than intended.
+ *
+ * Import this once on the route that serves the chat, AFTER `@import
+ * "tailwindcss"`:
+ *
+ *     @import "tailwindcss";
+ *     @import "@metabindai/agent-ui/styles.css";
+ *
+ * If your app already ships a shadcn theme (these same tokens + the
+ * `* { @apply border-border }` base rule), you don't need this file — your theme
+ * already covers the chat. It's standard shadcn "neutral" values; override the
+ * tokens in your own CSS to rebrand. */
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', Roboto, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Cascadia Code', monospace;
-  --font-heading: -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', Roboto, sans-serif;
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -75,20 +66,7 @@
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
   --radius: 1rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
 }
 
 .dark {
@@ -110,19 +88,6 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
 }
 
 @layer base {
@@ -131,8 +96,5 @@
   }
   body {
     @apply bg-background text-foreground;
-  }
-  html {
-    @apply font-sans;
   }
 }

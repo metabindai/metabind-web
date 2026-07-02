@@ -17,6 +17,7 @@
     "@mcp-ui/client": "^7.1.0",
     "@metabindai/agent-core": "workspace:^",
     "@metabindai/agent-ai-sdk": "workspace:^",
+    "@metabindai/agent-ui": "workspace:^",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@streamdown/cjk": "^1.0.3",
     "@streamdown/code": "^1.1.1",

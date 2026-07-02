@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>MCP Apps Sandbox Proxy</title>
+  </head>
+  <body>
+    <script>
+      window.addEventListener("message", (event) => {
+        const data = event.data;
+        if (!data || typeof data !== "object") return;
+        if (data.method === "ui/notifications/sandbox-resource-ready") {
+          const html = data.params && data.params.html;
+          if (typeof html === "string") {
+            document.open();
+            document.write(html);
+            document.close();
+          }
+        }
+      });
+      window.parent.postMessage(
+        { method: "ui/notifications/sandbox-proxy-ready", params: {} },
+        "*",
+      );
+    </script>
+  </body>
+</html>

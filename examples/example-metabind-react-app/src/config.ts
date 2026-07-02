@@ -23,7 +23,5 @@ export const METABIND_TOKEN = required("VITE_METABIND_API_KEY");
 // Optional overrides — defaults are the production Metabind endpoints.
 export const AGENT_BASE_URL =
     env.VITE_METABIND_AGENT_BASE_URL || "https://agent.metabind.ai";
-const MCP_BASE_URL =
+export const MCP_BASE_URL =
     env.VITE_METABIND_MCP_BASE_URL || "https://mcp.metabind.ai";
-
-export const MCP_URL = `${MCP_BASE_URL}/${ORG_ID}/projects/${PROJECT_ID}`;
