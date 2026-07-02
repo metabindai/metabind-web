@@ -7,7 +7,7 @@ import {
     METABIND_TOKEN,
     AGENT_BASE_URL,
     MCP_BASE_URL,
-} from "@/config";
+} from "./config";
 
 // Configure the chat once, at module load, before <AgentChat /> mounts. The
 // whole chat surface — assistant-ui runtime, MetabindAgentTransport, and MCP UI

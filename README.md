@@ -36,17 +36,22 @@ pnpm test       # vitest suites
 
 ## Example app
 
-`examples/example-metabind-react-app` is a working chat app on top of a Metabind
-project's MCP endpoint — a starting point to fork. It consumes the packages via
-`workspace:*`, so it always runs against your local checkout (rebuild a package
-to see changes).
+`examples/example-metabind-react-app` is a minimal, clone-and-run chat app — the
+smallest thing that stands up a working chat against a Metabind project. It is
+**standalone, not a workspace member**: it installs `@metabindai/agent-ui` from
+npm (not a workspace link), so it behaves exactly like a fresh download for an
+external consumer. Copy the folder out on its own and it runs.
 
 ```sh
-pnpm build
-cp examples/example-metabind-react-app/.env.example examples/example-metabind-react-app/.env.local
-# fill in org id, project id, API key — see the example's README
-pnpm --filter example-metabind-react-app dev
+cd examples/example-metabind-react-app
+pnpm install                       # pulls @metabindai/agent-ui from npm
+cp .env.example .env.local         # fill in org id, project id, API key
+pnpm dev
 ```
+
+See the example's own README for details. Because it's not workspace-linked,
+local package edits don't flow into it — publish (or point it at a local build)
+to test changes there.
 
 ## Consuming from another repo during development
 

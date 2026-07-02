@@ -23,12 +23,7 @@
     "noUncheckedSideEffectImports": true,
     "noImplicitAny": false,
     "noImplicitUseStrict": false,
-    "noStrictGenericChecks": false,
-
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["./src/*"]
-    }
+    "noStrictGenericChecks": false
   },
   "include": ["src"]
 }
