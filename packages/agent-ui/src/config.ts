@@ -5,21 +5,19 @@
 // resolved copy here. Module-level (one chat instance per page), mirroring the
 // module-singleton MCP client.
 
+import type { ReactNode } from "react";
 import type { ChatInitDetail } from "./protocol";
-import type { EmptyStateTile } from "./empty-state-tiles";
 import type { ChatTracer } from "./tracer";
 
-/** Empty-state / welcome hero content, shown until the first message. */
-export type WelcomeConfig = {
-    /** Headline. Default: "How can I help?" */
-    title?: string;
-    /** Supporting line under the headline. Optional. */
-    subtitle?: string;
-    /** Label above the starter tiles. Only shown when `tiles` is non-empty. */
-    tilesLabel?: string;
-    /** Clickable starter-prompt tiles. Default: none. */
-    tiles?: EmptyStateTile[];
-};
+/**
+ * The project-scoped credential the agent + MCP requests authenticate with.
+ * Either a plain string (e.g. a durable API key inlined at build time) or a
+ * getter — sync or async — resolved fresh on every request. Use the getter form
+ * when a host brokers a short-lived token that is refreshed on expiry, or to
+ * defer the first request until a token has arrived (return a promise that
+ * settles once it has).
+ */
+export type ApiKeyProvider = string | (() => string | Promise<string>);
 
 export type AgentChatConfig = {
     /** Metabind agent proxy credentials. */
@@ -28,8 +26,10 @@ export type AgentChatConfig = {
         baseUrl?: string;
         orgId: string;
         projectId: string;
-        /** Project-scoped API key (used for both the agent + MCP requests). */
-        apiKey: string;
+        /** Project-scoped credential for both the agent + MCP requests. A
+         *  string, or a (possibly async) getter for a host-refreshed token —
+         *  see {@link ApiKeyProvider}. */
+        apiKey: ApiKeyProvider;
     };
     /** MCP endpoint override. Default base: https://mcp.metabind.ai */
     mcp?: { baseUrl?: string };
@@ -41,8 +41,13 @@ export type AgentChatConfig = {
     /** Fallback conversation context when no INIT handshake arrives (e.g. the
      *  chat is served standalone, not inside a host shell). */
     context?: ChatInitDetail;
-    /** Empty-state / welcome hero content. */
-    welcome?: WelcomeConfig;
+    /** Render the empty state shown until the first message. Defaults to the
+     *  built-in `<DefaultWelcome/>`. Compose or replace it — e.g.
+     *  `welcome: () => <DefaultWelcome title={name} icon={url} tiles={tiles} />`.
+     *  Rendered inside the runtime providers, so it can use `StarterTile` /
+     *  `ThreadPrimitive.Suggestion`. (Direct-consumer only — a component can't
+     *  cross an iframe; send the DATA to your consumer and build the node there.) */
+    welcome?: () => ReactNode;
     /** Expected origin of INIT messages from the host. Default: window origin. */
     origin?: string;
     /** When neither a `firstPrompt` nor a `kickoff` is seeded, open the
@@ -61,24 +66,42 @@ export type AgentChatConfig = {
     /** Allow the user to attach media/files in the composer (the attach button +
      *  drag-and-drop dropzone). Default false. */
     allowAttachments?: boolean;
+    /** After each assistant turn, generate a few short LLM follow-up prompt
+     *  buttons ("Suggested next steps") from the recent conversation. Off by
+     *  default. Pass `true` for the built-in shaping instruction, or an object
+     *  to customise it. */
+    followUpSuggestions?: boolean | { instruction?: string };
 };
+
+/** Built-in shaping instruction for follow-up suggestions (see config). */
+export const DEFAULT_FOLLOW_UP_INSTRUCTION =
+    "You are drafting short follow-up prompts a user might send next. Keep each tight — ideally 3-6 words, max 40 characters — written like a button label, not a sentence. No trailing punctuation. Vary the angle (drill-in, comparison, alternative, broaden). Only return follow-up suggestions if they're relevant to the conversation.";
+
+function resolveFollowUps(
+    v: AgentChatConfig["followUpSuggestions"],
+): { enabled: boolean; instruction: string } {
+    if (!v) return { enabled: false, instruction: DEFAULT_FOLLOW_UP_INSTRUCTION };
+    const instruction =
+        (typeof v === "object" && v.instruction) || DEFAULT_FOLLOW_UP_INSTRUCTION;
+    return { enabled: true, instruction };
+}
 
 export type ResolvedChatConfig = {
     agentBaseUrl: string;
     mcpUrl: string;
     orgId: string;
     projectId: string;
-    apiKey: string;
+    apiKey: ApiKeyProvider;
     sandboxUrl: string;
     tracer?: ChatTracer;
     context?: ChatInitDetail;
-    welcome: Required<Pick<WelcomeConfig, "title" | "tiles">> &
-        Pick<WelcomeConfig, "subtitle" | "tilesLabel">;
+    welcome?: () => ReactNode;
     origin?: string;
     autoStart: boolean;
     autoStartMessage: string;
     debug: boolean;
     allowAttachments: boolean;
+    followUpSuggestions: { enabled: boolean; instruction: string };
 };
 
 let current: ResolvedChatConfig | undefined;
@@ -95,17 +118,13 @@ export function configureChat(config: AgentChatConfig): void {
         sandboxUrl: config.sandboxUrl || "/sandbox_proxy.html",
         tracer: config.tracer,
         context: config.context,
-        welcome: {
-            title: config.welcome?.title || "How can I help?",
-            subtitle: config.welcome?.subtitle,
-            tilesLabel: config.welcome?.tilesLabel,
-            tiles: config.welcome?.tiles ?? [],
-        },
+        welcome: config.welcome,
         origin: config.origin,
         autoStart: config.autoStart ?? true,
         autoStartMessage: config.autoStartMessage || "Hi!",
         debug: config.debug ?? false,
         allowAttachments: config.allowAttachments ?? false,
+        followUpSuggestions: resolveFollowUps(config.followUpSuggestions),
     };
 }
 
@@ -117,4 +136,14 @@ export function getChatConfig(): ResolvedChatConfig {
         );
     }
     return current;
+}
+
+/**
+ * Resolve the configured `apiKey` to a bearer token for the current request.
+ * A string resolves instantly; a getter is invoked (and awaited) each call so
+ * refreshed tokens are picked up. Empty string means "no token yet".
+ */
+export async function resolveApiKey(): Promise<string> {
+    const { apiKey } = getChatConfig();
+    return typeof apiKey === "function" ? await apiKey() : apiKey;
 }

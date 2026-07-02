@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+    type ReactNode,
+} from "react";
 import { AssistantRuntimeProvider } from "@assistant-ui/react";
 import { useChatRuntime } from "@assistant-ui/react-ai-sdk";
 import { MetabindAgentTransport } from "@metabindai/agent-ai-sdk/assistant-ui";
@@ -130,7 +137,13 @@ function useInitSeed(runtime: ReturnType<typeof useChatRuntime>): {
     return { welcomeReady };
 }
 
-export function AgentChat() {
+/**
+ * `children` are rendered inside the assistant-ui + MCP providers, before the
+ * thread — a seam for headless host-integration helpers that need runtime
+ * context (e.g. reporting conversation activity up to an embedding host, or
+ * filling the composer from a host signal). They render nothing themselves.
+ */
+export function AgentChat({ children }: { children?: ReactNode }) {
     const runtimeRef = useRef<unknown>(null);
     const tracer = getChatConfig().tracer ?? noopTracer;
 
@@ -156,6 +169,7 @@ export function AgentChat() {
     return (
         <TooltipProvider>
             <AssistantRuntimeProvider runtime={runtime}>
+                {children}
                 <McpUiProvider>
                     <WelcomeReadyProvider value={welcomeReady}>
                         <div className="flex h-screen flex-col bg-background">

@@ -1,6 +1,6 @@
 import { createMCPClient, type MCPClient } from "@ai-sdk/mcp";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { getChatConfig } from "./config";
+import { getChatConfig, resolveApiKey } from "./config";
 
 let mcpClientPromise: Promise<MCPClient> | undefined;
 
@@ -32,26 +32,32 @@ export async function getMCPClient(): Promise<MCPClient> {
     if (!mcpClientPromise) {
         let timeoutId: ReturnType<typeof setTimeout> | undefined;
         const startup = (async () => {
-            const { mcpUrl, apiKey: token } = getChatConfig();
+            const { mcpUrl } = getChatConfig();
             // The HTTP transport defaults to `globalThis.fetch`, which throws
             // "Can only call Window.fetch on instances of Window" in browsers
             // because the unbound reference loses its receiver. Also: the
             // transport adds a User-Agent suffix header that triggers a CORS
             // preflight the metabind MCP server doesn't whitelist. Strip it.
-            const boundFetch: typeof fetch = (input, init) => {
-                if (init?.headers) {
-                    const h = new Headers(init.headers);
-                    h.delete("user-agent");
-                    init = { ...init, headers: h };
-                }
-                return window.fetch(input, init);
+            //
+            // The Authorization header is resolved and injected here (per
+            // request) rather than once at transport construction, so a config
+            // whose `apiKey` is a getter — e.g. a host-brokered OAuth token that
+            // is refreshed on expiry — is picked up even though the client is a
+            // module singleton. An async getter also lets the first tools/list
+            // wait until the token is available (bounded by STARTUP_TIMEOUT_MS)
+            // instead of firing unauthenticated and 401ing.
+            const boundFetch: typeof fetch = async (input, init) => {
+                const h = new Headers(init?.headers);
+                h.delete("user-agent");
+                const token = await resolveApiKey();
+                if (token) h.set("Authorization", `Bearer ${token}`);
+                return window.fetch(input, { ...init, headers: h });
             };
             return await createMCPClient({
                 transport: {
                     type: "http",
                     url: mcpUrl,
                     fetch: boundFetch,
-                    ...(token && { headers: { Authorization: `Bearer ${token}` } }),
                 },
             });
         })();

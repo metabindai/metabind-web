@@ -1,6 +1,6 @@
 "use client";
 
-import { AgentChat, configureChat } from "@metabindai/agent-ui";
+import { AgentChat, configureChat, DefaultWelcome } from "@metabindai/agent-ui";
 import {
     ORG_ID,
     PROJECT_ID,
@@ -22,10 +22,12 @@ configureChat({
     mcp: { baseUrl: MCP_BASE_URL },
     // sandbox_proxy.html is served from this app's public/ root.
     sandboxUrl: "/sandbox_proxy.html",
-    welcome: {
-        title: "How can I help?",
-        subtitle: "Ask me anything — I can use the tools wired to this project.",
-    },
+    welcome: () => (
+        <DefaultWelcome
+            title="How can I help?"
+            subtitle="Ask me anything — I can use the tools wired to this project."
+        />
+    ),
 });
 
 export default function App() {

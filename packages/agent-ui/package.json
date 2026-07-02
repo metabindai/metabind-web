@@ -1,6 +1,6 @@
 {
   "name": "@metabindai/agent-ui",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Prebuilt, drop-in React chat UI for the Metabind agent proxy: the assistant-ui runtime, MetabindAgentTransport, and MCP UI tool rendering. Configure with your Metabind project + key and render <AgentChat />. Works standalone or embedded via the iframe bridge at @metabindai/agent-ui/protocol.",
   "type": "module",
   "main": "./index.ts",

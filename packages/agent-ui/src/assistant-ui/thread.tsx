@@ -25,7 +25,7 @@ import {
     ToolFallbackTrigger,
 } from "./tool-fallback";
 import { ToolAppView } from "../tool-app-view";
-import { EmptyStateTiles } from "../empty-state-tiles";
+import { EmptyStateTiles, type EmptyStateTile } from "../empty-state-tiles";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { TooltipIconButton } from "./tooltip-icon-button";
 import { Button } from "../ui/button";
@@ -48,6 +48,7 @@ import {
     ErrorPrimitive,
     MessagePrimitive,
     ThreadPrimitive,
+    useAui,
     useAuiState,
 } from "@assistant-ui/react";
 import {
@@ -63,7 +64,15 @@ import {
     RefreshCwIcon,
     SquareIcon,
 } from "lucide-react";
-import { useEffect, useState, type FC } from "react";
+import {
+    useEffect,
+    useRef,
+    useState,
+    type FC,
+    type ReactNode,
+} from "react";
+import type { AgentClient } from "@metabindai/agent-core";
+import { makeAgentClient } from "../agent";
 
 export const Thread: FC = () => {
     // Skip turnAnchor on the very first turn — anchoring "top" before there's
@@ -96,7 +105,7 @@ export const Thread: FC = () => {
                 <div className="mx-auto flex w-full max-w-(--thread-max-width) flex-1 flex-col space-y-12 px-4 pt-4">
                     {welcomeReady && (
                         <AuiIf condition={(s) => s.thread.isEmpty}>
-                            <ThreadWelcome />
+                            <WelcomeSlot />
                         </AuiIf>
                     )}
                     <ThreadPrimitive.Messages>
@@ -239,14 +248,64 @@ const ThreadScrollToBottom: FC = () => {
     );
 };
 
-// Empty-state hero shown until the first message. Title/subtitle and the
-// optional starter tiles are supplied via `configureChat({ welcome })`.
-const ThreadWelcome: FC = () => {
-    const { title, subtitle, tilesLabel, tiles } = getChatConfig().welcome;
+// Picks the empty-state to render: the consumer-supplied `welcome` render fn
+// wins, otherwise the built-in `DefaultWelcome`.
+const WelcomeSlot: FC = () => {
+    const welcome = getChatConfig().welcome;
+    return welcome ? <>{welcome()}</> : <DefaultWelcome />;
+};
+
+export type DefaultWelcomeProps = {
+    /** Headline. Default: "How can I help?" */
+    title?: ReactNode;
+    /** Supporting line under the headline. */
+    subtitle?: ReactNode;
+    /** Image URL shown above the headline (e.g. the project / MCP icon). */
+    icon?: string;
+    /** Small uppercase pill above the headline (e.g. "Test"). */
+    badge?: ReactNode;
+    /** Label above the tiles. Only shown when there are tiles. */
+    tilesLabel?: ReactNode;
+    /** Data-driven starter tiles (rendered via `EmptyStateTiles`). */
+    tiles?: EmptyStateTile[];
+    /** Custom tiles slot — overrides `tiles`. Use `StarterTile` for click-to-send. */
+    children?: ReactNode;
+};
+
+/**
+ * The built-in empty-state hero (icon/badge/title/subtitle) with the starter
+ * tiles anchored to the bottom. Props-driven and exported, so a custom
+ * `configureChat({ welcome })` can render it directly, compose around it, or
+ * pass its own `children` for the tiles slot.
+ */
+export const DefaultWelcome: FC<DefaultWelcomeProps> = ({
+    title = "How can I help?",
+    subtitle,
+    icon,
+    badge,
+    tilesLabel,
+    tiles,
+    children,
+}) => {
+    const hasTiles = !!children || (tiles?.length ?? 0) > 0;
     return (
-        <div className="aui-thread-welcome-root flex grow flex-col justify-start sm:my-auto sm:justify-center">
-            <div className="aui-thread-welcome-center mx-auto flex w-full max-w-2xl flex-col items-start px-8 py-8">
+        <div className="aui-thread-welcome-root my-auto flex grow flex-col">
+            {/* Hero grows to fill the space above the tiles, centering the
+                message vertically; the tiles then anchor to the bottom. */}
+            <div className="aui-thread-welcome-center mx-auto flex w-full max-w-2xl grow flex-col items-start justify-center px-8 py-8">
                 <div className="aui-thread-welcome-message flex flex-col items-start space-y-1 text-left">
+                    {icon && (
+                        <img
+                            src={icon}
+                            alt=""
+                            className="fade-in animate-in fill-mode-both mb-3 size-12 rounded-xl object-cover duration-200"
+                        />
+                    )}
+                    {badge && (
+                        <span className="fade-in slide-in-from-bottom-1 animate-in fill-mode-both mb-3 inline-flex w-fit items-center rounded-full border border-border/20 bg-muted/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground duration-200">
+                            {badge}
+                        </span>
+                    )}
                     <h1 className="aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in fill-mode-both font-semibold text-2xl duration-200">
                         {title}
                     </h1>
@@ -256,23 +315,22 @@ const ThreadWelcome: FC = () => {
                         </p>
                     )}
                 </div>
-
-                {tiles.length > 0 && (
-                    <>
-                        {tilesLabel && (
-                            <div className="fade-in animate-in fill-mode-both w-full pt-8 pb-3 delay-100 duration-200">
-                                <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                    {tilesLabel}
-                                </span>
-                            </div>
-                        )}
-
-                        <div className="aui-thread-welcome-tiles fade-in slide-in-from-bottom-1 animate-in fill-mode-both w-full delay-150 duration-200">
-                            <EmptyStateTiles tiles={tiles} />
-                        </div>
-                    </>
-                )}
             </div>
+
+            {hasTiles && (
+                <div className="aui-thread-welcome-tiles mx-auto w-full max-w-2xl px-8 pb-4">
+                    {tilesLabel && (
+                        <div className="fade-in animate-in fill-mode-both w-full pb-3 delay-100 duration-200">
+                            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                {tilesLabel}
+                            </span>
+                        </div>
+                    )}
+                    <div className="fade-in slide-in-from-bottom-1 animate-in fill-mode-both w-full delay-150 duration-200">
+                        {children ?? <EmptyStateTiles tiles={tiles ?? []} />}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
@@ -338,6 +396,174 @@ const MessageError: FC = () => {
                 <ErrorPrimitive.Message className="aui-message-error-message line-clamp-2" />
             </ErrorPrimitive.Root>
         </MessagePrimitive.Error>
+    );
+};
+
+// ── Follow-up suggestions (opt-in via configureChat({ followUpSuggestions })) ─
+
+// Reuse one agent client for suggestion generation (config is set by the time
+// any suggestion fires). Lazily created so disabled builds never construct it.
+let suggestionClient: AgentClient | undefined;
+function getSuggestionClient(): AgentClient {
+    return (suggestionClient ??= makeAgentClient());
+}
+
+// Pulls a JSON array of strings out of a model reply that may include
+// surrounding prose, code fences, or a wrapping object. Returns an empty
+// array on failure so the UI just doesn't render suggestions.
+function parseSuggestionsFromReply(reply: string): string[] {
+    const stripped = reply.replace(/```(?:json)?\s*|\s*```/g, "").trim();
+    const tryParse = (s: string): unknown => {
+        try {
+            return JSON.parse(s);
+        } catch {
+            return undefined;
+        }
+    };
+    const direct = tryParse(stripped);
+    const candidates = [
+        direct,
+        direct && typeof direct === "object" && !Array.isArray(direct)
+            ? (direct as Record<string, unknown>).suggestions
+            : undefined,
+        (() => {
+            const m = stripped.match(/\[[\s\S]*?\]/);
+            return m ? tryParse(m[0]) : undefined;
+        })(),
+    ];
+    for (const c of candidates) {
+        if (Array.isArray(c) && c.every((x) => typeof x === "string")) {
+            return c.slice(0, 4);
+        }
+    }
+    return [];
+}
+
+// Watches for completed assistant turns and asks the agent proxy for short
+// follow-up prompts based on the recent conversation and a shaping instruction.
+// The proxy doesn't accept a per-request system prompt, so the instructions are
+// embedded in the user message and the reply is parsed as JSON. Resets while a
+// new run is in flight.
+function useFollowupSuggestions(
+    instruction: string,
+    enabled: boolean,
+): string[] {
+    const messages = useAuiState((s) => s.thread.messages);
+    const isRunning = useAuiState((s) => s.thread.isRunning);
+    const [suggestions, setSuggestions] = useState<string[]>([]);
+    const lastSeenIdRef = useRef<string | null>(null);
+
+    useEffect(() => {
+        if (!enabled || isRunning) {
+            setSuggestions([]);
+            return;
+        }
+        const last = messages[messages.length - 1];
+        if (!last || last.role !== "assistant") return;
+        if (lastSeenIdRef.current === last.id) return;
+        lastSeenIdRef.current = last.id;
+        const fetchedFor = last.id;
+
+        // Compact text of the last few turns; tool calls / attachments dropped —
+        // the suggestion model only needs prose.
+        const context = messages
+            .slice(-4)
+            .map((m) => {
+                const text = (m.parts ?? [])
+                    .filter((p) => p.type === "text")
+                    .map((p) => (p as { text: string }).text)
+                    .join("\n")
+                    .trim();
+                return text ? `${m.role}: ${text}` : null;
+            })
+            .filter(Boolean)
+            .join("\n\n");
+
+        if (!context) return;
+
+        const prompt = [
+            instruction,
+            "",
+            "Recent conversation:",
+            context,
+            "",
+            'Reply with ONLY a JSON array of 3 short follow-up prompt strings, e.g. ["...", "...", "..."]. No prose, no code fences.',
+        ].join("\n");
+
+        // No `cancelled` flag: under StrictMode the setup/cleanup/setup sequence
+        // would flip it before the fetch resolves, swallowing the only state
+        // update. Instead drop late responses by checking the dedup ref still
+        // points at this message.
+        getSuggestionClient()
+            .chatText({ messages: [{ role: "user", content: prompt }] })
+            .then((reply) => {
+                if (lastSeenIdRef.current !== fetchedFor) return;
+                const parsed = parseSuggestionsFromReply(reply);
+                if (parsed.length > 0) setSuggestions(parsed);
+            })
+            .catch((err) => {
+                console.warn("[followup-suggestions] failed", err);
+            });
+    }, [messages, isRunning, instruction, enabled]);
+
+    return enabled ? suggestions : [];
+}
+
+// Inline follow-up suggestions rendered at the tail of the latest assistant
+// message, styled like a tool group with a "Suggested next step" header.
+// Selecting one appends it as a user message and collapses the group.
+const FollowupSuggestionsInline: FC = () => {
+    const { enabled: cfgEnabled, instruction } =
+        getChatConfig().followUpSuggestions;
+    const aui = useAui();
+    const isLatestAssistant = useAuiState((s) => {
+        const msgs = s.thread.messages;
+        for (let i = msgs.length - 1; i >= 0; i--) {
+            if (msgs[i].role === "assistant") return msgs[i].id === s.message.id;
+        }
+        return false;
+    });
+    const isRunning = useAuiState((s) => s.thread.isRunning);
+    const enabled = cfgEnabled && isLatestAssistant && !isRunning;
+    const suggestions = useFollowupSuggestions(instruction, enabled);
+    const [open, setOpen] = useState(true);
+
+    if (!enabled || suggestions.length === 0) return null;
+
+    return (
+        <div className="aui-followup-suggestions mt-10">
+            <ToolGroupRoot variant="ghost" open={open} onOpenChange={setOpen}>
+                <ToolGroupTrigger
+                    label={
+                        suggestions.length === 1
+                            ? "Suggested next step"
+                            : "Suggested next steps"
+                    }
+                    className="text-muted-foreground"
+                />
+                <ToolGroupContent>
+                    <div className="grid w-full gap-2 pt-2 @md:grid-cols-2">
+                        {suggestions.map((s) => (
+                            <Button
+                                key={s}
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setOpen(false);
+                                    aui.thread().append({
+                                        role: "user",
+                                        content: [{ type: "text", text: s }],
+                                    });
+                                }}
+                                className="h-auto w-full justify-start gap-1 rounded-3xl px-4 py-3 text-start text-sm"
+                            >
+                                {s}
+                            </Button>
+                        ))}
+                    </div>
+                </ToolGroupContent>
+            </ToolGroupRoot>
+        </div>
     );
 };
 
@@ -434,6 +660,7 @@ const AssistantMessage: FC = () => {
                 </MessagePrimitive.GroupedParts>
                 <StalledIndicator />
                 <MessageError />
+                <FollowupSuggestionsInline />
             </div>
 
             <div
