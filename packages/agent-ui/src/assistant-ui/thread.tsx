@@ -292,13 +292,13 @@ export const DefaultWelcome: FC<DefaultWelcomeProps> = ({
         <div className="aui-thread-welcome-root my-auto flex grow flex-col">
             {/* Hero grows to fill the space above the tiles, centering the
                 message vertically; the tiles then anchor to the bottom. */}
-            <div className="aui-thread-welcome-center mx-auto flex w-full max-w-2xl grow flex-col items-start justify-center px-8 py-8">
+            <div className="aui-thread-welcome-center mx-auto flex w-full max-w-2xl grow flex-col items-start justify-center px-0 py-8">
                 <div className="aui-thread-welcome-message flex flex-col items-start space-y-1 text-left">
                     {icon && (
                         <img
                             src={icon}
                             alt=""
-                            className="fade-in animate-in fill-mode-both mb-3 size-12 rounded-xl object-cover duration-200"
+                            className="fade-in animate-in fill-mode-both mb-3 size-12 rounded-lg object-cover duration-200"
                         />
                     )}
                     {badge && (
@@ -318,7 +318,7 @@ export const DefaultWelcome: FC<DefaultWelcomeProps> = ({
             </div>
 
             {hasTiles && (
-                <div className="aui-thread-welcome-tiles mx-auto w-full max-w-2xl px-8 pb-4">
+                <div className="aui-thread-welcome-tiles mx-auto w-full max-w-2xl px-0 pb-4">
                     {tilesLabel && (
                         <div className="fade-in animate-in fill-mode-both w-full pb-3 delay-100 duration-200">
                             <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
