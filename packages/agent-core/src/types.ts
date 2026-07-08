@@ -59,6 +59,13 @@ export type AgentChatRequest = {
     conversationId?: string;
     /** Defaults to `true` — the proxy currently only supports streaming. */
     stream?: boolean;
+    /**
+     * Target the project's draft (unpublished) MCP server instead of the
+     * published one (MET-1271). Defaults to `false`. The proxy pins this to the
+     * conversation on its first turn — a later turn that flips it is rejected,
+     * so switching targets requires a fresh `conversationId`.
+     */
+    draft?: boolean;
 };
 
 export type AgentClientConfig = {

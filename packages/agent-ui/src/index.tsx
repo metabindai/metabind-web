@@ -151,6 +151,10 @@ export function AgentChat({ children }: { children?: ReactNode }) {
         () =>
             new MetabindAgentTransport({
                 client: makeAgentClient(),
+                // MET-1271: route this chat to the draft MCP server when the
+                // host configured it. Fixed for the transport's lifetime —
+                // switching requires a remount (fresh conversation).
+                draft: getChatConfig().draft,
                 // Live getter: the hidden steering text resolves per turn.
                 leadingContext: getSystemContext,
                 onSendMessage: (i) => tracer.onSend(i),
