@@ -1,34 +1,35 @@
 "use client";
 
-import { useMemo } from "react";
-import { Thread } from "@/components/assistant-ui/thread";
-import { McpUiProvider } from "@/mcp-ui-context";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { AssistantRuntimeProvider } from "@assistant-ui/react";
-import { useChatRuntime } from "@assistant-ui/react-ai-sdk";
-import { MetabindAgentTransport } from "@metabindai/agent-ai-sdk/assistant-ui";
-import { agentClient } from "@/agent";
+import { AgentChat, configureChat, DefaultWelcome } from "@metabindai/agent-ui";
+import {
+    ORG_ID,
+    PROJECT_ID,
+    METABIND_TOKEN,
+    AGENT_BASE_URL,
+    MCP_BASE_URL,
+} from "./config";
+
+// Configure the chat once, at module load, before <AgentChat /> mounts. The
+// whole chat surface — assistant-ui runtime, MetabindAgentTransport, and MCP UI
+// tool rendering — comes from @metabindai/agent-ui.
+configureChat({
+    agent: {
+        baseUrl: AGENT_BASE_URL,
+        orgId: ORG_ID,
+        projectId: PROJECT_ID,
+        apiKey: METABIND_TOKEN,
+    },
+    mcp: { baseUrl: MCP_BASE_URL },
+    // sandbox_proxy.html is served from this app's public/ root.
+    sandboxUrl: "/sandbox_proxy.html",
+    welcome: () => (
+        <DefaultWelcome
+            title="How can I help?"
+            subtitle="Ask me anything — I can use the tools wired to this project."
+        />
+    ),
+});
 
 export default function App() {
-    // The transport also accepts `onSendMessage`, `onToolCalled`, and
-    // `onTurnUsage` callbacks — wire them here if you want analytics or
-    // per-tool latency / token attribution.
-    const transport = useMemo(
-        () => new MetabindAgentTransport({ client: agentClient }),
-        [],
-    );
-
-    const runtime = useChatRuntime({ transport });
-
-    return (
-        <TooltipProvider>
-            <AssistantRuntimeProvider runtime={runtime}>
-                <McpUiProvider>
-                    <div className="flex h-screen flex-col bg-background">
-                        <Thread />
-                    </div>
-                </McpUiProvider>
-            </AssistantRuntimeProvider>
-        </TooltipProvider>
-    );
+    return <AgentChat />;
 }

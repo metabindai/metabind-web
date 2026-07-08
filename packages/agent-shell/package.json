@@ -1,0 +1,50 @@
+{
+  "name": "@metabindai/agent-shell",
+  "version": "0.2.0",
+  "description": "Host-side presentation shell for the Metabind agent chat: a modal/sidebar/pill dock that embeds <AgentChat> (@metabindai/agent-ui) in a same-origin iframe and re-surfaces the bridge signals (INIT/DOCK) as React callbacks.",
+  "type": "module",
+  "main": "./index.ts",
+  "module": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "files": [
+    "dist",
+    "src",
+    "index.ts"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "metabind",
+    "agent",
+    "chat",
+    "shell",
+    "iframe"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@metabindai/agent-ui": "workspace:^",
+    "lucide-react": "^1.14.0"
+  },
+  "peerDependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "typescript": "~5.6.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/metabindai/metabind-web",
+    "directory": "packages/agent-shell"
+  }
+}

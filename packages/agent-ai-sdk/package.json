@@ -1,6 +1,6 @@
 {
   "name": "@metabindai/agent-ai-sdk",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Vercel AI SDK adapter for the Metabind agent proxy. Drop-in transport for `useChat`, with an assistant-ui flavour at `@metabindai/agent-ai-sdk/assistant-ui`.",
   "type": "module",
   "main": "dist/index.js",

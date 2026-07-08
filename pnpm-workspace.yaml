@@ -1,4 +1,8 @@
-# Metabind web SDK packages + examples.
+# Metabind web SDK packages.
+#
+# `examples/*` is intentionally NOT a workspace member: the example app is a
+# standalone, clonable starter that installs the published `@metabindai/*`
+# packages from npm (not workspace links), so it behaves exactly like a fresh
+# download for an external consumer.
 packages:
   - 'packages/*'
-  - 'examples/*'
