@@ -1,6 +1,6 @@
 {
   "name": "@metabindai/agent-core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Framework-agnostic client for the Metabind agent proxy. Streams typed events from `agent.metabind.ai/:orgId/:projectId/chat`.",
   "type": "module",
   "main": "dist/index.js",

@@ -30,6 +30,12 @@ export type AgentChatConfig = {
          *  string, or a (possibly async) getter for a host-refreshed token —
          *  see {@link ApiKeyProvider}. */
         apiKey: ApiKeyProvider;
+        /** Target the project's draft (unpublished) MCP server instead of the
+         *  published one (MET-1271). Applies to both the agent `/chat` request
+         *  and the direct MCP client used to render tool UIs. Default false.
+         *  Pinned per-conversation by the proxy — to switch, remount the chat so
+         *  a fresh conversation starts. */
+        draft?: boolean;
     };
     /** MCP endpoint override. Default base: https://mcp.metabind.ai */
     mcp?: { baseUrl?: string };
@@ -92,6 +98,8 @@ export type ResolvedChatConfig = {
     orgId: string;
     projectId: string;
     apiKey: ApiKeyProvider;
+    /** Whether requests target the draft MCP server (MET-1271). */
+    draft: boolean;
     sandboxUrl: string;
     tracer?: ChatTracer;
     context?: ChatInitDetail;
@@ -109,12 +117,19 @@ let current: ResolvedChatConfig | undefined;
 export function configureChat(config: AgentChatConfig): void {
     const agentBaseUrl = config.agent.baseUrl || "https://agent.metabind.ai";
     const mcpBaseUrl = config.mcp?.baseUrl || "https://mcp.metabind.ai";
+    const draft = config.agent.draft ?? false;
+    // MET-1271: the draft MCP server lives at the `/draft` URL suffix and
+    // exposes the project's unpublished tools. Mirrors the proxy's own routing.
+    const mcpUrl = `${mcpBaseUrl}/${config.agent.orgId}/projects/${config.agent.projectId}${
+        draft ? "/draft" : ""
+    }`;
     current = {
         agentBaseUrl,
-        mcpUrl: `${mcpBaseUrl}/${config.agent.orgId}/projects/${config.agent.projectId}`,
+        mcpUrl,
         orgId: config.agent.orgId,
         projectId: config.agent.projectId,
         apiKey: config.agent.apiKey,
+        draft,
         sandboxUrl: config.sandboxUrl || "/sandbox_proxy.html",
         tracer: config.tracer,
         context: config.context,

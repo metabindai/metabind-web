@@ -43,6 +43,13 @@ export type MetabindAgentTransportOptions = (
      * it lazily (e.g. from sessionStorage) on each turn.
      */
     leadingContext?: string | (() => string | undefined);
+    /**
+     * Target the project's draft (unpublished) MCP server instead of the
+     * published one (MET-1271). Sent on every outbound `/chat` request; the
+     * proxy pins it to the conversation on the first turn, so callers that let
+     * the user toggle this must start a fresh conversation on change.
+     */
+    draft?: boolean;
     /** Fires once per outbound user turn — used for analytics. */
     onSendMessage?: (info: SendMessageInfo) => void;
     /** Fires when a tool_result lands on the SSE stream. The runtime
@@ -104,6 +111,7 @@ export function buildTransportInit(opts: MetabindAgentTransportOptions): {
     const client = resolveClient(opts);
     const { chatUrl, apiKey } = client.config;
     const onSendMessage = opts.onSendMessage;
+    const draft = opts.draft;
     const leadingContext = opts.leadingContext;
     const resolveLeadingContext = (): string | undefined => {
         const v =
@@ -141,6 +149,9 @@ export function buildTransportInit(opts: MetabindAgentTransportOptions): {
                         messages: agentMessages,
                         conversationId: id,
                         stream: true,
+                        // Omit unless set so published conversations send the
+                        // bare body the proxy has always accepted.
+                        ...(draft ? { draft: true } : {}),
                     },
                 };
             },
