@@ -4,7 +4,7 @@ import { AppRenderer } from "@mcp-ui/client";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { useAui } from "@assistant-ui/react";
 import { useEffect, useMemo, useState } from "react";
-import { callMCPTool, getMCPClient } from "./mcp";
+import { callMCPTool, readResourceHtml } from "./mcp";
 import { getChatConfig } from "./config";
 import { postDockSignal, type DockMode } from "./protocol";
 
@@ -48,19 +48,17 @@ export function ToolAppView({
 
     useEffect(() => {
         let cancelled = false;
-        (async () => {
-            try {
-                const client = await getMCPClient();
-                const data = await client.readResource({ uri: resourceUri });
-                if (cancelled) return;
-                const c = (data as { contents?: Array<{ text?: string }> })?.contents?.[0];
-                if (typeof c?.text === "string") setHtml(c.text);
-                else setError(`no html in resource ${resourceUri}`);
-            } catch (err) {
+        // Memoized per URI — shares the in-flight promise with any prefetch
+        // kicked off when the surface was seeded, so this never double-fetches
+        // the (~1 MB) resource.
+        readResourceHtml(resourceUri)
+            .then((text) => {
+                if (!cancelled) setHtml(text);
+            })
+            .catch((err) => {
                 console.error("[tool-app-view] readResource failed", { toolName, resourceUri, err });
                 if (!cancelled) setError(String(err));
-            }
-        })();
+            });
         return () => {
             cancelled = true;
         };
@@ -76,7 +74,9 @@ export function ToolAppView({
 
     if (error) return <div className="text-xs text-destructive">{error}</div>;
     if (!html || !sandboxUrl)
-        return <div className="text-xs text-muted-foreground">loading ui…</div>;
+        // Match the thread's thinking indicator so the surface's fetch reads as
+        // one continuous "assistant is working" state, not a separate loader.
+        return <div className="shimmer text-muted-foreground text-sm">Thinking…</div>;
 
     return (
         <div

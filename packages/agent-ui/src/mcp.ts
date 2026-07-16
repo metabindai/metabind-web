@@ -28,6 +28,43 @@ export async function callMCPTool(
     return client.callTool({ name, args });
 }
 
+// UI resources are large (the metabind render bundles are ~1 MB of inlined
+// HTML/JS) and immutable per version, so reading one is memoized per URI for
+// the page session. This dedupes the dev-mode StrictMode double-mount (two 1 MB
+// fetches), any surface remount, and repeat renders of the same tool — and lets
+// a surface's HTML be prefetched (warmed into this cache) before it mounts.
+const resourceHtmlCache = new Map<string, Promise<string>>();
+
+export function readResourceHtml(uri: string): Promise<string> {
+    let p = resourceHtmlCache.get(uri);
+    if (!p) {
+        p = (async () => {
+            const client = await getMCPClient();
+            const data = await client.readResource({ uri });
+            const c = (data as { contents?: Array<{ text?: string }> })
+                ?.contents?.[0];
+            if (typeof c?.text !== "string")
+                throw new Error(`no html in resource ${uri}`);
+            return c.text;
+        })().catch((err) => {
+            // Drop the rejected promise so a later mount can retry.
+            resourceHtmlCache.delete(uri);
+            throw err;
+        });
+        resourceHtmlCache.set(uri, p);
+    }
+    return p;
+}
+
+/** Fire-and-forget warm of a UI resource into the cache. Safe to call before
+ *  the surface mounts (e.g. as soon as a seeded tool's URI is known) so the
+ *  ~1 MB fetch overlaps the rest of startup instead of gating the render. */
+export function prefetchResourceHtml(uri: string): void {
+    void readResourceHtml(uri).catch(() => {
+        /* the mount will surface the error */
+    });
+}
+
 export async function getMCPClient(): Promise<MCPClient> {
     if (!mcpClientPromise) {
         let timeoutId: ReturnType<typeof setTimeout> | undefined;

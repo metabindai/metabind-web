@@ -109,12 +109,50 @@ export function useDockSignal(
 
 // ── Init handshake (host → chat) ─────────────────────────────────────────────
 
+/**
+ * One seeded opening turn. A bare string is shorthand for an assistant text
+ * message. `{ text }` is the same, explicitly. `{ tool }` renders a UI tool's
+ * surface with fixed input and no model call — the tool must be a registered
+ * MCP UI tool (its surface is resolved by name), and its result is never sent
+ * to the agent, so this is a pure client-side render whose form drives the
+ * next turn when the user interacts with it.
+ */
+export type GreetingMessage =
+    | string
+    | { text: string }
+    | {
+          /** Registered MCP UI tool name, e.g. "question_flow". */
+          tool: string;
+          /** Fixed tool input (the tool's argument object) that drives the
+           *  rendered surface. */
+          input?: Record<string, unknown>;
+          /** Fixed tool result. Defaults to an empty successful result; the
+           *  surface is driven by `input`, so this rarely needs setting. */
+          output?: unknown;
+          /** The tool's UI resource URI (e.g. "ui://metabind/render/…"),
+           *  passed inline so the surface renders WITHOUT the `listTools`
+           *  round trip that would otherwise be needed to discover it. The
+           *  client also prefetches this resource immediately. Omit to fall
+           *  back to discovery via `listTools`. */
+          resourceUri?: string;
+      };
+
 export type ChatInit = {
     [INIT_MARKER]: true;
     /** Hidden steering text injected as a leading message every turn. */
     systemContext?: string;
     /** Visible first user message, seeded once. */
     firstPrompt?: string;
+    /** Pre-baked assistant opener(s), shown verbatim as the first turn(s) — no
+     *  model round-trip. Seeded once (like firstPrompt/kickoff), but rendered in
+     *  the assistant's voice. A bare string is a single text turn; an array
+     *  seeds an ordered sequence of assistant turns, each either static text or
+     *  a static UI tool call (a UI tool's surface rendered with fixed input, no
+     *  model call). Use it to greet with details the host already knows or to
+     *  open straight into a fixed form. The configured `firstPrompt`/`kickoff`
+     *  still runs after, so the model can take the next turn. `kickoff` is the
+     *  model-authored alternative. */
+    greeting?: string | GreetingMessage[];
     /** Hidden instruction that makes the assistant open the conversation. */
     kickoff?: string;
     /** Title shown in the shell chrome (echoed for convenience). */
