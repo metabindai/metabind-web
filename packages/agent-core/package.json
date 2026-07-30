@@ -22,7 +22,7 @@
     "mcp"
   ],
   "author": "",
-  "license": "ISC",
+  "license": "Apache-2.0",
   "dependencies": {
     "eventsource-parser": "^3.0.8"
   },

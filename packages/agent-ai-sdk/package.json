@@ -33,7 +33,7 @@
     "mcp"
   ],
   "author": "",
-  "license": "ISC",
+  "license": "Apache-2.0",
   "dependencies": {
     "@metabindai/agent-core": "workspace:^"
   },
