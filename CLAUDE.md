@@ -34,7 +34,7 @@ Do not start dev servers (the example app's `pnpm dev`) from an agent session â€
 ## Publishing (maintainers)
 
 ```sh
-pnpm --filter <pkg> build && npm publish -w packages/<pkg>   # agent-shell publishes without a build
+pnpm --filter <pkg> build && pnpm --filter <pkg> publish --access public   # agent-shell publishes without a build
 ```
 
 ## License
