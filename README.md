@@ -4,7 +4,7 @@ The web SDK for Metabind. Embed a governed agent in your React app — as a drop
 
 ## What this is
 
-Metabind is the hosted platform for [Model Context Protocol (MCP)](https://modelcontextprotocol.io) Apps: you define the tools, and Metabind runs the server. It turns your existing UI and APIs into a governed agent — a standards-compliant MCP App that understands what each customer came for, renders interactive UI instead of plain text, and runs both inside your own app and across Claude, ChatGPT, and every MCP host. The agent is governed, not autonomous. It follows the system prompt you author, and it can only render components you approved, validated against each tool's schema on every render.
+Metabind builds agents that answer in your product's own UI, not in a chat window: interactive interfaces that take customers straight to what they came for, in the brand they already know. It's built from the UI, design system, and APIs the app already has. No rewrite. It's governed, rendering only components you've approved, enforced on every render. And it's hosted: you define the tools, we run the server. The same agent runs inside your own iOS, Android, and web apps, and across Claude, ChatGPT, and every MCP host, on the open [MCP](https://modelcontextprotocol.io) standard.
 
 This repository is the web side. It ships four npm packages under the public `@metabindai` scope, adoptable independently — the fastest path is `@metabindai/agent-ui`'s `<AgentChat />`; the others are the layers underneath it:
 
@@ -42,9 +42,9 @@ All are published with `publishConfig.access = public`.
 | Android | [`metabind-android`](https://github.com/metabindai/metabind-android) |
 | Web (React) | `metabind-web` — this repository |
 
-One MCP App serves all three: the same tools, components, and agent configuration from a single publish, so the SDKs compose — ship the web chat surface and the mobile assistants together.
+One [MCP App](https://github.com/modelcontextprotocol/ext-apps) serves all three: the same tools, components, and agent configuration from a single publish, so the SDKs compose — ship the web chat surface and the mobile assistants together.
 
-**[🚀 Start free at metabind.ai](https://metabind.ai)** · **[📖 Read the docs](https://docs.metabind.ai)**
+**[Start free at metabind.ai](https://www.metabind.ai/signup)** · **[Read the docs](https://docs.metabind.ai)**
 
 ## Documentation
 
