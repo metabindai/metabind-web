@@ -20,13 +20,13 @@ pnpm add @metabindai/agent-ui react react-dom
 ## Integration
 
 ```tsx
-import { AgentChat, configureChat } from "@metabindai/agent-ui";
+import { AgentChat, configureChat, DefaultWelcome } from "@metabindai/agent-ui";
 
 configureChat({
   agent: { orgId: ORG_ID, projectId: PROJECT_ID, apiKey: METABIND_TOKEN },
   mcp: { baseUrl: "https://mcp.metabind.ai" },
   sandboxUrl: "/sandbox_proxy.html", // see "Static assets" below
-  welcome: { title: "How can I help?" },
+  welcome: () => <DefaultWelcome title="How can I help?" />,
 });
 
 export default function ChatRoute() {
@@ -80,15 +80,17 @@ tokens by generating its classes through your build:
 | --- | --- | --- |
 | `agent.orgId` / `agent.projectId` / `agent.apiKey` | ✅ | Metabind project + project-scoped API key. Inlined into the browser bundle — fine for a project-scoped key, **not** for raw LLM-provider secrets. |
 | `agent.baseUrl` | | Default `https://agent.metabind.ai`. |
+| `agent.draft` | | Target the project's draft (unpublished) MCP server instead of the published one. Applies to both the agent `/chat` request and the MCP client. Default `false`. |
 | `mcp.baseUrl` | | Default `https://mcp.metabind.ai`. |
 | `sandboxUrl` | | Path/URL to `sandbox_proxy.html`. Default `/sandbox_proxy.html`. |
-| `welcome` | | Empty-state hero: `{ title?, subtitle?, tilesLabel?, tiles? }`. `tiles` are clickable starter prompts (see `EmptyStateTile`). Default title `"How can I help?"`, no tiles. |
+| `welcome` | | Render fn for the empty state: `() => ReactNode`. Defaults to the built-in `<DefaultWelcome/>`; pass `() => <DefaultWelcome title subtitle icon badge tilesLabel tiles />` to customise. |
 | `tracer` | | Optional per-turn tracing hook (e.g. Langfuse-backed). |
 | `context` | | Fallback conversation context when no INIT handshake arrives (chat served standalone, outside a host shell). |
 | `autoStart` | | When no `firstPrompt`/`kickoff` is seeded, open the conversation anyway (a hidden opener turn) so the chat never lands on the welcome state — the agent's system prompt drives the greeting. Default `true`; set `false` to keep the welcome state. |
 | `autoStartMessage` | | The hidden opener used by `autoStart`. Default `"Hi!"`. |
 | `debug` | | Show the developer tool-call display (the "Used N tools" collapsible + raw arg/result cards). `?debug=1` / `?debug=0` overrides at runtime. Default `false`. |
 | `allowAttachments` | | Allow attaching media/files in the composer. Default `false`. |
+| `followUpSuggestions` | | After each assistant turn, generate short LLM follow-up prompt buttons. `true` for the built-in shaping instruction, or `{ instruction }` to customise it. Default off. |
 | `origin` | | Expected origin of INIT messages from a host shell. Default: the window origin. |
 
 When embedded, conversation context (system steering / first prompt / kickoff)
@@ -106,7 +108,8 @@ re-present + hands back an opaque payload), and a READY announcement. Exports
 
 ## Exports
 
-`configureChat`, `AgentChat`, `mountAgentChat`, `EmptyStateTiles`,
-`getSystemContext`, `KICKOFF_SENTINEL`, and the types `AgentChatConfig`,
-`WelcomeConfig`, `EmptyStateTile`, `ChatTracer`. The bridge lives on the
-`./protocol` subpath.
+`configureChat`, `AgentChat`, `mountAgentChat`, `EmptyStateTiles`, `StarterTile`,
+`DefaultWelcome`, `getSystemContext`, `KICKOFF_SENTINEL`, and the types
+`AgentChatConfig`, `ApiKeyProvider`, `EmptyStateTile`, `StarterTileProps`,
+`DefaultWelcomeProps`, `ChatTracer`. The bridge lives on the `./protocol`
+subpath.

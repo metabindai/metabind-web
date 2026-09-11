@@ -54,7 +54,7 @@ To integrate the chat into your app, follow the [Web SDK guide](https://docs.met
 
 ```sh
 pnpm install
-pnpm build      # builds agent, then agent-ai-sdk (topological)
+pnpm build      # topological: agent-core → agent-ai-sdk → agent-ui (css)
 pnpm test       # vitest suites
 ```
 
@@ -96,10 +96,10 @@ checkout via pnpm overrides instead of publishing on every change:
 
 ```sh
 npm login                       # @metabindai org
-pnpm --filter @metabindai/agent-core   build && npm publish -w packages/agent-core
-pnpm --filter @metabindai/agent-ai-sdk build && npm publish -w packages/agent-ai-sdk
-pnpm --filter @metabindai/agent-ui     build && npm publish -w packages/agent-ui
-npm publish -w packages/agent-shell    # source-only, no build step
+pnpm --filter @metabindai/agent-core   build && pnpm --filter @metabindai/agent-core   publish --access public
+pnpm --filter @metabindai/agent-ai-sdk build && pnpm --filter @metabindai/agent-ai-sdk publish --access public
+pnpm --filter @metabindai/agent-ui     build && pnpm --filter @metabindai/agent-ui     publish --access public
+pnpm --filter @metabindai/agent-shell  publish --access public   # source-only, no build step
 ```
 
 `ai`, `@ai-sdk/react`, and `@assistant-ui/react-ai-sdk` are **peer dependencies**
