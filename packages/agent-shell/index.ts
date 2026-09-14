@@ -19,6 +19,7 @@ export {
     type DockMode,
     type DockSignalDetail,
     type ChatInitDetail,
+    type GreetingMessage,
     postInit,
     parseInit,
     postDockSignal,

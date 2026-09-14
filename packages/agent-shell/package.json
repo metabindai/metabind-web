@@ -1,6 +1,6 @@
 {
   "name": "@metabindai/agent-shell",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Host-side presentation shell for the Metabind agent chat: a modal/sidebar/pill dock that embeds <AgentChat> (@metabindai/agent-ui) in a same-origin iframe and re-surfaces the bridge signals (INIT/DOCK) as React callbacks.",
   "type": "module",
   "main": "./index.ts",

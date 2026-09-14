@@ -54,7 +54,7 @@ directly with your own `open` / `onClose` / `mode`.
 | `mode` / `defaultMode` | Controlled or uncontrolled dock mode (`modal` \| `sidebar` \| `pill`). Default `modal`. |
 | `onModeChange` | Fires on every mode change (user- or tool-driven). |
 | `onDock` | A tool UI in the chat asked to dock; receives `{ mode, payload }`. `payload` is opaque — the bridge doesn't interpret it; use it to sync your own view. |
-| `context` | Conversation context seeded into the chat via INIT (`systemContext`, `firstPrompt`, `kickoff`, `title`). |
+| `context` | Conversation context seeded into the chat via INIT (`systemContext`, `firstPrompt`, `greeting`, `kickoff`, `title`). `greeting` is a pre-baked assistant opener shown instantly with no model call — a string, or an ordered list of `GreetingMessage` entries (static text and/or a UI tool surface rendered from fixed input); the configured `firstPrompt`/`kickoff` still runs after it. |
 | `launchRef` / `launchFrom` | Grow-from origin for the open animation. |
 | `onClose` | Ends the session (close button / pill close). |
 | `reloadKey` | Bump to remount the iframe and reseed the conversation. |

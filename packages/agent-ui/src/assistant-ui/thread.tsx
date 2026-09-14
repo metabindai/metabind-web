@@ -577,6 +577,13 @@ const AssistantMessage: FC = () => {
     // collapsible + raw arg/result cards). The MCP UI surfaces — the actual
     // product carousels — always render via ToolGroupUiSurfaces.
     const { debug } = useMcpUi();
+    // A host-seeded greeting turn (static text / tool surface). It renders
+    // compactly — no action-bar footer and no big trailing reservation — since
+    // that chrome is meaningless here and its reserved space reads as a gap
+    // before the user's next turn. Only this turn is affected.
+    const seeded = useAuiState(
+        (s) => (s.message.metadata?.custom as { seeded?: boolean } | undefined)?.seeded === true,
+    );
 
     return (
         <MessagePrimitive.Root
@@ -586,7 +593,10 @@ const AssistantMessage: FC = () => {
         >
             <div
                 data-slot="aui_assistant-message-content"
-                className="wrap-break-word px-2 text-foreground leading-[1.95] pb-20"
+                className={cn(
+                    "wrap-break-word px-2 text-foreground leading-[1.95]",
+                    seeded ? "pb-2" : "pb-20",
+                )}
             >
                 <ThinkingIndicator />
                 <MessagePrimitive.GroupedParts
@@ -663,13 +673,15 @@ const AssistantMessage: FC = () => {
                 <FollowupSuggestionsInline />
             </div>
 
-            <div
-                data-slot="aui_assistant-message-footer"
-                className={cn("ms-2 flex items-center", ACTION_BAR_HEIGHT)}
-            >
-                <BranchPicker />
-                <AssistantActionBar />
-            </div>
+            {!seeded && (
+                <div
+                    data-slot="aui_assistant-message-footer"
+                    className={cn("ms-2 flex items-center", ACTION_BAR_HEIGHT)}
+                >
+                    <BranchPicker />
+                    <AssistantActionBar />
+                </div>
+            )}
         </MessagePrimitive.Root>
     );
 };

@@ -91,9 +91,19 @@ tokens by generating its classes through your build:
 | `allowAttachments` | | Allow attaching media/files in the composer. Default `false`. |
 | `origin` | | Expected origin of INIT messages from a host shell. Default: the window origin. |
 
-When embedded, conversation context (system steering / first prompt / kickoff)
-normally arrives at runtime from the host via the INIT handshake — you don't pass
-it here.
+When embedded, conversation context (system steering / first prompt / greeting /
+kickoff) normally arrives at runtime from the host via the INIT handshake — you
+don't pass it here.
+
+Besides `firstPrompt` (a visible user opener) and `kickoff` (a hidden
+instruction that makes the model open), the context can carry a `greeting`: a
+pre-baked assistant opener rendered verbatim the instant the chat mounts, with
+no model round-trip. It's a string, or an ordered `GreetingMessage[]` mixing
+static text and static UI tool calls (a registered MCP UI tool's surface
+rendered from fixed `input` — pass its `resourceUri` inline to skip the
+`listTools` discovery round trip; the resource HTML is prefetched immediately).
+A greeting is additive: the configured `firstPrompt`/`kickoff`/`autoStart`
+still runs afterwards, so the model takes the next turn.
 
 ## The iframe bridge — `@metabindai/agent-ui/protocol`
 
