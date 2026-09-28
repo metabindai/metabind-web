@@ -103,12 +103,15 @@ describe("MetabindAgentTransport outbound messages", () => {
         expect(bodies.every((b) => b.conversationId === "chat-1")).toBe(true);
     });
 
-    it("resends the full history when the first turn failed before the proxy stored it", async () => {
+    it("sends only the newest user message after a first turn that ended in an error", async () => {
         const bodies = stubProxy([
-            [{ type: "message_start" }, { type: "error", message: "overloaded" }],
+            [
+                { type: "message_start" },
+                { type: "error", code: "provider_error", message: "overloaded" },
+            ],
             DONE,
         ]);
-        const t = makeTransport();
+        const t = makeTransport(() => "scenario A");
         const u1 = user("u1", "My name is Ada.");
         const a1 = assistant("a1", "partial");
         const u2 = user("u2", "What is my name?");
@@ -116,11 +119,11 @@ describe("MetabindAgentTransport outbound messages", () => {
         await send(t, "chat-1", [u1]);
         await send(t, "chat-1", [u1, a1, u2]);
 
-        expect(texts(bodies[1])).toEqual([
-            "user:My name is Ada.",
-            "assistant:partial",
-            "user:What is my name?",
-        ]);
+        // The proxy stores a turn that ends in an `error` event once it has
+        // sent `message_start` (the orchestrator yields the error and returns
+        // its history, which the chat handler saves), so turn one and its
+        // leading context are already stored.
+        expect(texts(bodies[1])).toEqual(["user:What is my name?"]);
     });
 
     it("keeps sending only the newest user message after a later turn fails", async () => {

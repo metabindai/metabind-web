@@ -136,16 +136,16 @@ export function buildTransportInit(opts: MetabindAgentTransportOptions): {
                 : leadingContext;
         return v && v.trim().length > 0 ? v : undefined;
     };
-    // Conversation ids the proxy holds a stored history for. Marked on
-    // `message_start`, which the proxy sends only after the request passed
-    // validation; unmarked if the turn that would have created the record
-    // ends in an `error` event, since the proxy stores only turns that
-    // complete. A turn the user stops is still completed and stored.
+    // Conversation ids the proxy holds a stored history for, marked on
+    // `message_start`. The proxy sends that event only after the request
+    // passed validation, and it then stores the turn even when the turn ends
+    // in an `error` event (a provider error, for example), so an error does
+    // not unmark the id: resending the history would duplicate it. The Apple
+    // and Android SDKs also keep the conversation id after an error.
     const storedConversations = new Set<string>();
     // Leading context the proxy last received for each conversation.
     const storedContext = new Map<string, string | undefined>();
     let currentConversationId = "";
-    let currentWasStored = false;
     let currentContext: string | undefined;
     return {
         init: {
@@ -158,7 +158,6 @@ export function buildTransportInit(opts: MetabindAgentTransportOptions): {
             prepareSendMessagesRequest: ({ id, messages }) => {
                 const resumed = storedConversations.has(id);
                 currentConversationId = id;
-                currentWasStored = resumed;
                 const userMessageIndex = messages.filter(
                     (m) => m.role === "user",
                 ).length;
@@ -192,8 +191,6 @@ export function buildTransportInit(opts: MetabindAgentTransportOptions): {
             if (event.type === "message_start") {
                 storedConversations.add(currentConversationId);
                 storedContext.set(currentConversationId, currentContext);
-            } else if (event.type === "error" && !currentWasStored) {
-                storedConversations.delete(currentConversationId);
             }
         },
         onToolCalled: opts.onToolCalled,
