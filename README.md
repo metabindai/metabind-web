@@ -100,15 +100,22 @@ checkout via pnpm overrides instead of publishing on every change:
 
 ```sh
 npm login                       # @metabindai org
-pnpm --filter @metabindai/agent-core   build && npm publish -w packages/agent-core
-pnpm --filter @metabindai/agent-ai-sdk build && npm publish -w packages/agent-ai-sdk
-pnpm --filter @metabindai/agent-ui     build && npm publish -w packages/agent-ui
-npm publish -w packages/agent-shell    # source-only, no build step
+pnpm install --frozen-lockfile && pnpm build
+pnpm -r publish --dry-run       # lists the packages whose version is not on npm yet
+pnpm -r publish                 # publishes them in dependency order
 ```
+
+Publish with pnpm, not npm: pnpm replaces the `workspace:^` ranges between these
+packages with the versions being published. `npm publish -w` finds no workspaces
+here, and `npm publish` run inside a package ships the literal `workspace:^`.
 
 `ai`, `@ai-sdk/react`, and `@assistant-ui/react-ai-sdk` are **peer dependencies**
 of `@metabindai/agent-ai-sdk` — consumers provide them. `react` / `react-dom` are
 peer dependencies of `@metabindai/agent-ui` and `@metabindai/agent-shell`.
+`@metabindai/agent-ui` also takes `@assistant-ui/react`, `@assistant-ui/react-ai-sdk`,
+`@assistant-ui/react-markdown`, and `@assistant-ui/tap` as peers, capped to the
+releases that work with the assistant-ui 0.14 line it is built on. npm 7+ and pnpm
+install these peers automatically.
 
 `@metabindai/agent-ui` and `@metabindai/agent-shell` ship as TypeScript/TSX
 **source** (their entry is `index.ts`) — consumers compile them through their own
