@@ -73,10 +73,19 @@ export type MetabindAgentTransportOptions = (
 //
 // The proxy expects plain `{role, content}` messages and appends them to the
 // history it stores for `conversationId` (tool calls and results included).
-// So the full text history goes out only until the proxy has stored the
-// conversation; after that each turn sends just the newest user message, as
-// the Apple and Android SDKs do. Replaying earlier turns would duplicate
-// them in the model's context on every turn.
+// It saves a turn when the turn ends, in `message_stop` or in an `error`
+// event. So each request sends only the messages after the last turn the
+// transport saw end that way: the full text history until then, and after
+// that just the newest user message, as the Apple and Android SDKs do.
+// Replaying stored turns would duplicate them in the model's context.
+//
+// A turn the proxy rejected before running it is never stored. A turn the
+// user stopped keeps running on the proxy, which saves it only when it
+// finishes, usually after the next message has arrived. Both go out again
+// with the next message: the user message and the text of any partial reply,
+// tool parts dropped, the encoding the native SDKs use for replayed turns.
+// If the proxy did finish a stopped turn first, the model sees that turn
+// twice; that is preferable to not seeing it at all.
 // ---------------------------------------------------------------------------
 
 function flattenToText(message: UIMessage): string {
@@ -103,6 +112,31 @@ function newestUserMessage(messages: UIMessage[]): AgentChatMessage[] {
     return [];
 }
 
+/**
+ * The messages the proxy has not stored, given the id of the last message of
+ * the newest request whose turn it stored. That turn's reply follows that
+ * message and is stored too.
+ */
+function unstoredMessages(
+    messages: UIMessage[],
+    storedThroughId: string,
+): AgentChatMessage[] {
+    const last = messages.findIndex((m) => m.id === storedThroughId);
+    // Not found: the thread was edited or branched below the stored turns.
+    // The proxy's history can't be rewound, so send just the new message.
+    if (last === -1) return newestUserMessage(messages);
+    let next = last + 1;
+    while (next < messages.length && messages[next].role === "assistant") {
+        next++;
+    }
+    const unstored = toAgentMessages(messages.slice(next));
+    // Nothing new, as when regenerating a stored turn: send the newest user
+    // message so the request has a turn to answer.
+    return unstored.some((m) => m.role === "user")
+        ? unstored
+        : newestUserMessage(messages);
+}
+
 function resolveClient(opts: MetabindAgentTransportOptions): AgentClient {
     return "client" in opts ? opts.client : createAgentClient(opts);
 }
@@ -114,8 +148,8 @@ function resolveClient(opts: MetabindAgentTransportOptions): AgentClient {
  * current id into a closed-over variable and `processResponseStream`
  * reads it back when wrapping `onToolCalled` events, since the SSE
  * stream itself doesn't repeat the id on every event. `onAgentEvent`
- * sees every proxy event so the transport can track which conversations
- * the proxy has stored.
+ * sees every proxy event so the transport can track which turns the
+ * proxy has stored.
  */
 export function buildTransportInit(opts: MetabindAgentTransportOptions): {
     init: HttpChatTransportInitOptions<UIMessage>;
@@ -136,17 +170,26 @@ export function buildTransportInit(opts: MetabindAgentTransportOptions): {
                 : leadingContext;
         return v && v.trim().length > 0 ? v : undefined;
     };
-    // Conversation ids the proxy holds a stored history for, marked on
-    // `message_start`. The proxy sends that event only after the request
-    // passed validation, and it then stores the turn even when the turn ends
-    // in an `error` event (a provider error, for example), so an error does
-    // not unmark the id: resending the history would duplicate it. The Apple
-    // and Android SDKs also keep the conversation id after an error.
-    const storedConversations = new Set<string>();
-    // Leading context the proxy last received for each conversation.
-    const storedContext = new Map<string, string | undefined>();
+    // What the proxy has stored for each conversation id: the id of the last
+    // message of the newest request whose turn ended in `message_stop` or
+    // `error`, and the leading context as of that request. The proxy saves a
+    // turn that ends in an `error` event too (a provider error, for example),
+    // so an error counts as stored, as it does in the Apple and Android SDKs.
+    // A turn the user stopped does not.
+    const stored = new Map<
+        string,
+        { throughMessageId: string; context: string | undefined }
+    >();
+    // The request in flight, recorded as stored when its turn ends.
+    let pending:
+        | {
+              conversationId: string;
+              throughMessageId: string;
+              context: string | undefined;
+              started: boolean;
+          }
+        | undefined;
     let currentConversationId = "";
-    let currentContext: string | undefined;
     return {
         init: {
             api: chatUrl,
@@ -156,7 +199,7 @@ export function buildTransportInit(opts: MetabindAgentTransportOptions): {
                 }`,
             }),
             prepareSendMessagesRequest: ({ id, messages }) => {
-                const resumed = storedConversations.has(id);
+                const prior = stored.get(id);
                 currentConversationId = id;
                 const userMessageIndex = messages.filter(
                     (m) => m.role === "user",
@@ -166,14 +209,22 @@ export function buildTransportInit(opts: MetabindAgentTransportOptions): {
                     messageCount: messages.length,
                     userMessageIndex,
                 });
-                const agentMessages = resumed
-                    ? newestUserMessage(messages)
+                const agentMessages = prior
+                    ? unstoredMessages(messages, prior.throughMessageId)
                     : toAgentMessages(messages);
                 const ctx = resolveLeadingContext();
-                currentContext = ctx;
-                if (ctx && (!resumed || storedContext.get(id) !== ctx)) {
+                if (ctx && (!prior || prior.context !== ctx)) {
                     agentMessages.unshift({ role: "user", content: ctx });
                 }
+                const lastMessage = messages[messages.length - 1];
+                pending = lastMessage
+                    ? {
+                          conversationId: id,
+                          throughMessageId: lastMessage.id,
+                          context: ctx,
+                          started: false,
+                      }
+                    : undefined;
                 return {
                     body: {
                         messages: agentMessages,
@@ -188,9 +239,18 @@ export function buildTransportInit(opts: MetabindAgentTransportOptions): {
         },
         getConversationId: () => currentConversationId,
         onAgentEvent: (event) => {
+            if (!pending) return;
             if (event.type === "message_start") {
-                storedConversations.add(currentConversationId);
-                storedContext.set(currentConversationId, currentContext);
+                pending.started = true;
+            } else if (
+                pending.started &&
+                (event.type === "message_stop" || event.type === "error")
+            ) {
+                stored.set(pending.conversationId, {
+                    throughMessageId: pending.throughMessageId,
+                    context: pending.context,
+                });
+                pending = undefined;
             }
         },
         onToolCalled: opts.onToolCalled,
