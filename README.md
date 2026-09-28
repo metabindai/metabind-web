@@ -1,6 +1,10 @@
-# Metabind for Web
+# Metabind for Web: Assistant SDK and MCP Apps chat UI for React
 
-The web SDK for Metabind. Embed a governed agent in your React app — as a drop-in chat surface or through lower-level building blocks.
+Metabind for Web is the Assistant SDK for React apps: `<AgentChat />` from `@metabindai/agent-ui` puts a governed agent inside your own web app, using the same MCP App you publish to Claude, ChatGPT, and every MCP host. Tool UIs render as MCP Apps in sandboxed iframes through [`@mcp-ui/client`](https://www.npmjs.com/package/@mcp-ui/client), and the chat handles the tool calls, messages, and link requests they send.
+
+<p><img src=".github/readme/net-worth-card.png" width="420" alt="Net Worth card from a Metabind demo MCP App with sample banking data: a 12-month line chart of net worth and four account balances, rendered as an HTML MCP App in a sandboxed iframe"></p>
+
+<sub>A tool UI from Metabind's banking demo MCP App (sample data), captured in the MCP Apps reference web host. <code>&lt;AgentChat /&gt;</code> receives the same <code>text/html;profile=mcp-app</code> resource and also renders it in a sandboxed iframe.</sub>
 
 ## What this is
 
