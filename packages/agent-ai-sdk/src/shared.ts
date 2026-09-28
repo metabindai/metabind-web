@@ -5,12 +5,14 @@ import type {
 } from "ai";
 import {
     createAgentClient,
+    parseAgentSse,
     type AgentChatMessage,
     type AgentClient,
     type AgentClientConfig,
+    type AgentEvent,
 } from "@metabindai/agent-core";
 import {
-    agentSseToUIMessageChunks,
+    agentEventsToUIMessageChunks,
     type ToolCalledInfo,
     type TurnUsageInfo,
 } from "./chunks";
@@ -35,12 +37,14 @@ export type MetabindAgentTransportOptions = (
     | AgentClientConfig
 ) & {
     /**
-     * Hidden steering text prepended as a non-displayed leading `user`
-     * message on every outbound request. The proxy holds the real system
-     * prompt server-side; this is the client-side escape hatch for
-     * per-session context (e.g. a demo scenario) that should reach the
-     * model but never appear in the UI thread. Pass a getter to resolve
-     * it lazily (e.g. from sessionStorage) on each turn.
+     * Hidden steering text sent as a non-displayed leading `user` message
+     * on a conversation's first request, and again on any later turn where
+     * its value has changed (the proxy keeps it in the stored history in
+     * between). The proxy holds the real system prompt server-side; this is
+     * the client-side escape hatch for per-session context (e.g. a demo
+     * scenario) that should reach the model but never appear in the UI
+     * thread. Pass a getter to resolve it lazily (e.g. from sessionStorage)
+     * on each turn.
      */
     leadingContext?: string | (() => string | undefined);
     /**
@@ -67,10 +71,12 @@ export type MetabindAgentTransportOptions = (
 // ---------------------------------------------------------------------------
 // UIMessage → AgentChatMessage conversion
 //
-// The proxy expects plain `{role, content}` messages. Tool calls and tool
-// results that appeared in earlier turns aren't re-sent — they were
-// proxy-internal, and the assistant's *text* response is what the model
-// needs to see when continuing the conversation.
+// The proxy expects plain `{role, content}` messages and appends them to the
+// history it stores for `conversationId` (tool calls and results included).
+// So the full text history goes out only until the proxy has stored the
+// conversation; after that each turn sends just the newest user message, as
+// the Apple and Android SDKs do. Replaying earlier turns would duplicate
+// them in the model's context on every turn.
 // ---------------------------------------------------------------------------
 
 function flattenToText(message: UIMessage): string {
@@ -90,6 +96,13 @@ function toAgentMessages(messages: UIMessage[]): AgentChatMessage[] {
         .filter((m) => m.content.length > 0);
 }
 
+function newestUserMessage(messages: UIMessage[]): AgentChatMessage[] {
+    for (let i = messages.length - 1; i >= 0; i--) {
+        if (messages[i].role === "user") return toAgentMessages([messages[i]]);
+    }
+    return [];
+}
+
 function resolveClient(opts: MetabindAgentTransportOptions): AgentClient {
     return "client" in opts ? opts.client : createAgentClient(opts);
 }
@@ -100,11 +113,14 @@ function resolveClient(opts: MetabindAgentTransportOptions): AgentClient {
  * `getConversationId` accessor — `prepareSendMessagesRequest` stamps the
  * current id into a closed-over variable and `processResponseStream`
  * reads it back when wrapping `onToolCalled` events, since the SSE
- * stream itself doesn't repeat the id on every event.
+ * stream itself doesn't repeat the id on every event. `onAgentEvent`
+ * sees every proxy event so the transport can track which conversations
+ * the proxy has stored.
  */
 export function buildTransportInit(opts: MetabindAgentTransportOptions): {
     init: HttpChatTransportInitOptions<UIMessage>;
     getConversationId: () => string;
+    onAgentEvent: (event: AgentEvent) => void;
     onToolCalled: ((info: ToolCalledTransportInfo) => void) | undefined;
     onTurnUsage: ((info: TurnUsageInfo) => void) | undefined;
 } {
@@ -120,7 +136,17 @@ export function buildTransportInit(opts: MetabindAgentTransportOptions): {
                 : leadingContext;
         return v && v.trim().length > 0 ? v : undefined;
     };
+    // Conversation ids the proxy holds a stored history for. Marked on
+    // `message_start`, which the proxy sends only after the request passed
+    // validation; unmarked if the turn that would have created the record
+    // ends in an `error` event, since the proxy stores only turns that
+    // complete. A turn the user stops is still completed and stored.
+    const storedConversations = new Set<string>();
+    // Leading context the proxy last received for each conversation.
+    const storedContext = new Map<string, string | undefined>();
     let currentConversationId = "";
+    let currentWasStored = false;
+    let currentContext: string | undefined;
     return {
         init: {
             api: chatUrl,
@@ -130,7 +156,9 @@ export function buildTransportInit(opts: MetabindAgentTransportOptions): {
                 }`,
             }),
             prepareSendMessagesRequest: ({ id, messages }) => {
+                const resumed = storedConversations.has(id);
                 currentConversationId = id;
+                currentWasStored = resumed;
                 const userMessageIndex = messages.filter(
                     (m) => m.role === "user",
                 ).length;
@@ -139,9 +167,12 @@ export function buildTransportInit(opts: MetabindAgentTransportOptions): {
                     messageCount: messages.length,
                     userMessageIndex,
                 });
-                const agentMessages = toAgentMessages(messages);
+                const agentMessages = resumed
+                    ? newestUserMessage(messages)
+                    : toAgentMessages(messages);
                 const ctx = resolveLeadingContext();
-                if (ctx) {
+                currentContext = ctx;
+                if (ctx && (!resumed || storedContext.get(id) !== ctx)) {
                     agentMessages.unshift({ role: "user", content: ctx });
                 }
                 return {
@@ -157,22 +188,43 @@ export function buildTransportInit(opts: MetabindAgentTransportOptions): {
             },
         },
         getConversationId: () => currentConversationId,
+        onAgentEvent: (event) => {
+            if (event.type === "message_start") {
+                storedConversations.add(currentConversationId);
+                storedContext.set(currentConversationId, currentContext);
+            } else if (event.type === "error" && !currentWasStored) {
+                storedConversations.delete(currentConversationId);
+            }
+        },
         onToolCalled: opts.onToolCalled,
         onTurnUsage: opts.onTurnUsage,
     };
 }
 
+async function* observe(
+    events: AsyncIterable<AgentEvent>,
+    onEvent: (event: AgentEvent) => void,
+): AsyncGenerator<AgentEvent> {
+    for await (const event of events) {
+        onEvent(event);
+        yield event;
+    }
+}
+
 /**
- * Wraps the proxy's SSE stream as `UIMessageChunk`s and stamps the
- * current conversation id onto each forwarded `onToolCalled` event.
+ * Wraps the proxy's SSE stream as `UIMessageChunk`s, reports each proxy
+ * event to `onAgentEvent`, and stamps the current conversation id onto
+ * each forwarded `onToolCalled` event.
  */
 export function processAgentStream(
     stream: ReadableStream<Uint8Array>,
     getConversationId: () => string,
+    onAgentEvent: (event: AgentEvent) => void,
     onToolCalled: ((info: ToolCalledTransportInfo) => void) | undefined,
     onTurnUsage: ((info: TurnUsageInfo) => void) | undefined,
 ): ReadableStream<UIMessageChunk> {
-    return agentSseToUIMessageChunks(stream, {
+    const events = observe(parseAgentSse(stream), onAgentEvent);
+    return agentEventsToUIMessageChunks(events, {
         onToolCalled: onToolCalled
             ? (info) =>
                   onToolCalled({
