@@ -1,5 +1,6 @@
 import { AssistantChatTransport } from "@assistant-ui/react-ai-sdk";
 import type { UIMessage, UIMessageChunk } from "ai";
+import type { AgentEvent } from "@metabindai/agent-core";
 import type { TurnUsageInfo } from "./chunks";
 import {
     buildTransportInit,
@@ -19,14 +20,21 @@ import {
  */
 export class MetabindAgentTransport extends AssistantChatTransport<UIMessage> {
     private readonly getConversationId: () => string;
+    private readonly onAgentEvent: (event: AgentEvent) => void;
     private readonly onToolCalled?: (info: ToolCalledTransportInfo) => void;
     private readonly onTurnUsage?: (info: TurnUsageInfo) => void;
 
     constructor(opts: MetabindAgentTransportOptions) {
-        const { init, getConversationId, onToolCalled, onTurnUsage } =
-            buildTransportInit(opts);
+        const {
+            init,
+            getConversationId,
+            onAgentEvent,
+            onToolCalled,
+            onTurnUsage,
+        } = buildTransportInit(opts);
         super(init);
         this.getConversationId = getConversationId;
+        this.onAgentEvent = onAgentEvent;
         this.onToolCalled = onToolCalled;
         this.onTurnUsage = onTurnUsage;
     }
@@ -37,6 +45,7 @@ export class MetabindAgentTransport extends AssistantChatTransport<UIMessage> {
         return processAgentStream(
             stream,
             this.getConversationId,
+            this.onAgentEvent,
             this.onToolCalled,
             this.onTurnUsage,
         );
