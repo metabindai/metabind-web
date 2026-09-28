@@ -68,7 +68,7 @@ LLM-provider secrets.
 The chat is configured, not composed — see `app.tsx`. Common knobs on
 `configureChat`:
 
-- `welcome: { title, subtitle, tiles }` — the empty-state hero + starter-prompt tiles
+- `welcome: () => <DefaultWelcome title subtitle tiles />` — the empty-state hero + starter-prompt tiles
 - `debug: true` (or `?debug=1` in the URL) — show raw tool-call args/results
 - `allowAttachments: true` — enable the composer's attach button + dropzone
 - `tracer` — per-turn hook for analytics/tracing
