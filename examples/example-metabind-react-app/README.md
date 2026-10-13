@@ -31,7 +31,7 @@ pnpm install      # pulls @metabindai/agent-ui from npm
 ## Configure
 
 You need three values: org id, project id, and a project-scoped API key. The
-fastest path is the [`metabind` CLI](https://www.npmjs.com/package/metabind):
+fastest path is the `metabind` CLI (`brew install metabindai/tap/metabind`):
 
 ```bash
 metabind auth login          # authenticate against your Metabind account
@@ -68,7 +68,7 @@ LLM-provider secrets.
 The chat is configured, not composed — see `app.tsx`. Common knobs on
 `configureChat`:
 
-- `welcome: { title, subtitle, tiles }` — the empty-state hero + starter-prompt tiles
+- `welcome: () => <DefaultWelcome title subtitle tiles />` — render function for the empty-state hero + starter-prompt tiles
 - `debug: true` (or `?debug=1` in the URL) — show raw tool-call args/results
 - `allowAttachments: true` — enable the composer's attach button + dropzone
 - `tracer` — per-turn hook for analytics/tracing
