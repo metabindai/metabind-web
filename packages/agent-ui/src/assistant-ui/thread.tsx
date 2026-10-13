@@ -66,6 +66,7 @@ import {
 } from "lucide-react";
 import {
     useEffect,
+    useMemo,
     useRef,
     useState,
     type FC,
@@ -73,6 +74,7 @@ import {
 } from "react";
 import type { AgentClient } from "@metabindai/agent-core";
 import { makeAgentClient } from "../agent";
+import { parseChatError } from "../error-message";
 
 export const Thread: FC = () => {
     // Skip turnAnchor on the very first turn — anchoring "top" before there's
@@ -389,11 +391,29 @@ const ComposerAction: FC = () => {
     );
 };
 
+// Shows the readable `message` from the proxy's error envelope instead of the
+// raw response body. The envelope's code is on `data-error-code`, and the full
+// parsed error is logged once for developers.
 const MessageError: FC = () => {
+    const error = useAuiState((s) =>
+        s.message.status?.type === "incomplete" &&
+        s.message.status.reason === "error"
+            ? (s.message.status.error ?? "An error occurred")
+            : undefined,
+    );
+    const parsed = useMemo(() => parseChatError(error), [error]);
+    useEffect(() => {
+        if (parsed) console.error("[@metabindai/agent-ui] chat error", parsed);
+    }, [parsed]);
     return (
         <MessagePrimitive.Error>
-            <ErrorPrimitive.Root className="aui-message-error-root mt-2 rounded-md border border-destructive bg-destructive/10 p-3 text-destructive text-sm dark:bg-destructive/5 dark:text-red-200">
-                <ErrorPrimitive.Message className="aui-message-error-message line-clamp-2" />
+            <ErrorPrimitive.Root
+                data-error-code={parsed?.code}
+                className="aui-message-error-root mt-2 rounded-md border border-destructive bg-destructive/10 p-3 text-destructive text-sm dark:bg-destructive/5 dark:text-red-200"
+            >
+                <ErrorPrimitive.Message className="aui-message-error-message whitespace-pre-wrap break-words">
+                    {parsed?.message ?? "An error occurred"}
+                </ErrorPrimitive.Message>
             </ErrorPrimitive.Root>
         </MessagePrimitive.Error>
     );
