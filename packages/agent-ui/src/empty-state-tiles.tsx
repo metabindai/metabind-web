@@ -7,8 +7,7 @@ import type { FC, ReactNode } from "react";
 // compact text tile (title + optional description) — suited to prompts generated
 // at runtime, where there's no artwork. Clicking anywhere on the tile sends
 // `prompt` to the thread as a starter message. Supply tiles via
-// `configureChat({ welcome: { tiles: [...] } })` or push them later with
-// `setWelcomeTiles([...])`.
+// `configureChat({ welcome: () => <DefaultWelcome tiles={[...]} /> })`.
 export type EmptyStateTile = {
     /** Background image (URL or path served by your app). Omit for a text tile. */
     image?: string;
@@ -39,9 +38,10 @@ export type StarterTileProps = {
 /**
  * A clickable starter-prompt tile. Wraps `ThreadPrimitive.Suggestion` so a click
  * sends `prompt` to the thread — the building block for custom welcome tiles
- * (`configureChat({ welcome: { renderTiles } })`) that don't want to reach into
- * assistant-ui directly. Pass `children` for a fully custom body, or
- * `title`/`description` for the default compact layout.
+ * (`<DefaultWelcome>{...}</DefaultWelcome>` in a `configureChat({ welcome })`
+ * render function) that don't want to reach into assistant-ui directly. Pass
+ * `children` for a fully custom body, or `title`/`description` for the default
+ * compact layout.
  */
 export const StarterTile: FC<StarterTileProps> = ({
     prompt,
